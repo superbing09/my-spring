@@ -21,15 +21,18 @@ public class BeanDefinitionReader {
 
     private final String SCAN_PACKAGE = "scanPackage";
 
-    private void loadBeanDefinitions(String packageName) {
-        URL url = this.getClass().getClassLoader().getResource("/" + packageName.replaceAll("\\.", "/"));
-        File classDir = new File(url.getFile());
+    private void loadBeanDefinitions(String packageNames) {
+        String[] packageNameArray = packageNames.split(",");
+        for (String packageName : packageNameArray) {
+            URL url = this.getClass().getClassLoader().getResource("/" + packageName.replaceAll("\\.", "/"));
+            File classDir = new File(url.getFile());
 
-        for (File file : classDir.listFiles()) {
-            if (file.isDirectory()) {
-                loadBeanDefinitions(packageName + "." + file.getName());
-            } else {
-                registyBeanClasses.add(packageName + "." + file.getName().replaceAll(".class", ""));
+            for (File file : classDir.listFiles()) {
+                if (file.isDirectory()) {
+                    loadBeanDefinitions(packageName + "." + file.getName());
+                } else {
+                    registyBeanClasses.add(packageName + "." + file.getName().replaceAll(".class", ""));
+                }
             }
         }
     }

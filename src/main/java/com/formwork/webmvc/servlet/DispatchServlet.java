@@ -3,6 +3,8 @@ package com.formwork.webmvc.servlet;
 import com.formwork.annotation.Autowired;
 import com.formwork.annotation.Controller;
 import com.formwork.annotation.Service;
+import com.formwork.context.GPApplicationContext;
+import com.mock.controller.HelloController;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -25,11 +27,11 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class DispatchServlet extends HttpServlet {
 
-    private Properties contextconfig = new Properties();
+/*    private Properties contextconfig = new Properties();
 
     private Map<String, Object> beanMap = new ConcurrentHashMap<String, Object>();
 
-    private List<String> classNames = new ArrayList<String>();
+    private List<String> classNames = new ArrayList<String>();*/
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -45,22 +47,16 @@ public class DispatchServlet extends HttpServlet {
     public void init(ServletConfig config) throws ServletException {
         // start init
 
-        // locate
-        doLoadConfig(config.getInitParameter("contextConfigLocation"));
-        // load
-        doScanner(contextconfig.getProperty("scanPackage"));
-        // register
-        doInstance();
-        // DI
-        doAutowired();
-
+        GPApplicationContext context = new GPApplicationContext(config.getInitParameter("contextConfigLocation"));
+        HelloController controller = (HelloController) context.getBean("helloController");
+        controller.hello();
         // handlerMapping
 
         // 关联@requestMapping
-        initHandlerMapping();
+        //initHandlerMapping();
     }
 
-    private void doLoadConfig(String location) {
+/*    private void doLoadConfig(String location) {
         try (InputStream inStream = this.getClass().getClassLoader().getResourceAsStream(location.replace("classpath:", ""))) {
             contextconfig.load(inStream);
         } catch (Exception e) {
@@ -68,15 +64,18 @@ public class DispatchServlet extends HttpServlet {
         }
     }
 
-    private void doScanner(String packageName) {
-        URL url = this.getClass().getClassLoader().getResource("/" + packageName.replaceAll("\\.", "/"));
-        File classDir = new File(url.getFile());
+    private void doScanner(String packageNames) {
+        String[] packageNameArray = packageNames.split(",");
+        for(String packageName : packageNameArray){
+            URL url = this.getClass().getClassLoader().getResource("/" + packageName.replaceAll("\\.", "/"));
+            File classDir = new File(url.getFile());
 
-        for (File file : classDir.listFiles()) {
-            if (file.isDirectory()) {
-                doScanner(packageName + "." + file.getName());
-            } else {
-                classNames.add(packageName + "." + file.getName().replaceAll(".class", ""));
+            for (File file : classDir.listFiles()) {
+                if (file.isDirectory()) {
+                    doScanner(packageName + "." + file.getName());
+                } else {
+                    classNames.add(packageName + "." + file.getName().replaceAll(".class", ""));
+                }
             }
         }
     }
@@ -111,7 +110,6 @@ public class DispatchServlet extends HttpServlet {
         if (classNames.isEmpty()) {
             return;
         }
-
         try {
             for (String clazzName : classNames) {
                 Class<?> clazz = Class.forName(clazzName);
@@ -147,5 +145,5 @@ public class DispatchServlet extends HttpServlet {
         char[] c = beanName.toCharArray();
         c[0] += 32;
         return String.valueOf(c);
-    }
+    }*/
 }
