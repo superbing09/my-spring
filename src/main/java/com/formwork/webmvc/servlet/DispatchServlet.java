@@ -4,6 +4,9 @@ import com.formwork.annotation.Autowired;
 import com.formwork.annotation.Controller;
 import com.formwork.annotation.Service;
 import com.formwork.context.GPApplicationContext;
+import com.formwork.webmvc.HandlerAdapter;
+import com.formwork.webmvc.HandlerMapping;
+import com.formwork.webmvc.ModelAndView;
 import com.mock.controller.HelloController;
 
 import javax.servlet.ServletConfig;
@@ -15,11 +18,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -27,20 +29,54 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class DispatchServlet extends HttpServlet {
 
-/*    private Properties contextconfig = new Properties();
-
-    private Map<String, Object> beanMap = new ConcurrentHashMap<String, Object>();
-
-    private List<String> classNames = new ArrayList<String>();*/
-
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         super.doPost(req, resp);
     }
 
+    private List<HandlerMapping> handlerMappings = new ArrayList<HandlerMapping>();
+
+    private List<HandlerAdapter> handlerAdapter = new ArrayList<HandlerAdapter>();
+
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String url = req.getRequestURI();
+        String contextPath = req.getContextPath();
+        url = url.replace(contextPath,"").replaceAll("/+", "/");
+        //HandlerMapping handler = handlerMapping.get(url);
+        // 对象，方法名
+ /*       try {
+            ModelAndView modelAndView = (ModelAndView) handler.getMethod().invoke(handler.getController(),null);
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }*/
+
+        doDispatch(req, resp);
         System.out.println("----------doPost--------------");
+    }
+
+    private void doDispatch(HttpServletRequest req, HttpServletResponse resp) {
+        HandlerMapping handler = getHandler(req);
+
+        HandlerAdapter adapter = getHandlerAdapter(handler);
+
+        ModelAndView mv = adapter.handle(req, resp, handler);
+
+        processDispatchResult(resp, mv);
+    }
+
+    private void processDispatchResult(HttpServletResponse resp, ModelAndView mv) {
+        // viewsolvers
+    }
+
+    private HandlerAdapter getHandlerAdapter(HandlerMapping handler) {
+        return null;
+    }
+
+    private HandlerMapping getHandler(HttpServletRequest req) {
+        return null;
     }
 
     @Override
@@ -48,6 +84,9 @@ public class DispatchServlet extends HttpServlet {
         // start init
 
         GPApplicationContext context = new GPApplicationContext(config.getInitParameter("contextConfigLocation"));
+
+        initStrategies(context);
+
         HelloController controller = (HelloController) context.getBean("helloController");
         controller.hello();
         // handlerMapping
@@ -56,94 +95,49 @@ public class DispatchServlet extends HttpServlet {
         //initHandlerMapping();
     }
 
-/*    private void doLoadConfig(String location) {
-        try (InputStream inStream = this.getClass().getClassLoader().getResourceAsStream(location.replace("classpath:", ""))) {
-            contextconfig.load(inStream);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    // mvc 9大组件
+    private void initStrategies(GPApplicationContext context) {
+        initMultipartResolver(context);// 文件上传解析器
+        initLocaleResolver(context);// 本地化配置
+        initThemeResolver(context);// 主题解析
+
+        initHandlerMappings(context);//  用来保存controller中配置的reqeustMapping和method的关系
+        initHandlerAdapters(context);//动态赋值转换method参数
+
+        initHandlerExceptionResolvers(context);
+        initRequestToViewNameTranslator(context);
+
+        initViewResolvers(context);// 解析视图
+
+        initFlashMapManager(context);
     }
 
-    private void doScanner(String packageNames) {
-        String[] packageNameArray = packageNames.split(",");
-        for(String packageName : packageNameArray){
-            URL url = this.getClass().getClassLoader().getResource("/" + packageName.replaceAll("\\.", "/"));
-            File classDir = new File(url.getFile());
-
-            for (File file : classDir.listFiles()) {
-                if (file.isDirectory()) {
-                    doScanner(packageName + "." + file.getName());
-                } else {
-                    classNames.add(packageName + "." + file.getName().replaceAll(".class", ""));
-                }
-            }
-        }
+    private void initFlashMapManager(GPApplicationContext context) {
     }
 
-    private void doAutowired() {
-        if (beanMap.isEmpty()) {
-            return;
-        }
-
-        for (Map.Entry<String, Object> entry : beanMap.entrySet()) {
-            Field[] fields = entry.getValue().getClass().getDeclaredFields();
-            for (Field field : fields) {
-                if (!field.isAnnotationPresent(Autowired.class)) {
-                    continue;
-                }
-                Autowired autowired = field.getAnnotation(Autowired.class);
-                String beanName = autowired.value().trim();
-                if("".equals(beanName)) {
-                    beanName = lowerFirstCase(field.getType().getSimpleName());
-                }
-                field.setAccessible(true);
-                try {
-                    field.set(entry.getValue(), beanMap.get(beanName));
-                } catch (IllegalAccessException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+    private void initViewResolvers(GPApplicationContext context) {
     }
 
-    private void doInstance() {
-        if (classNames.isEmpty()) {
-            return;
-        }
-        try {
-            for (String clazzName : classNames) {
-                Class<?> clazz = Class.forName(clazzName);
-                if (clazz.isAnnotationPresent(Controller.class)) {
-                    beanMap.put(lowerFirstCase(clazz.getSimpleName()), clazz.newInstance());
-                } else if (clazz.isAnnotationPresent(Service.class)) {
-                    Service service = clazz.getAnnotation(Service.class);
-                    String beanName = service.value().trim();
-                    if ("".equals(beanName)) {
-                        beanName = lowerFirstCase(clazz.getSimpleName());
-                    }
+    private void initRequestToViewNameTranslator(GPApplicationContext context) {
+    }
 
-                    Object instance = clazz.newInstance();
-                    beanMap.put(beanName, instance);
-                    Class<?>[] interfaces = instance.getClass().getInterfaces();
-                    for(Class cls : interfaces) {
-                        beanMap.put(lowerFirstCase(cls.getSimpleName()), instance);
-                    }
-                } else {
-                    continue;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private void initHandlerExceptionResolvers(GPApplicationContext context) {
+    }
+
+    private void initHandlerAdapters(GPApplicationContext context) {
+    }
+
+    private void initHandlerMappings(GPApplicationContext context) {
 
     }
 
-    private void initHandlerMapping() {
+    private void initThemeResolver(GPApplicationContext context) {
     }
 
-    private String lowerFirstCase(String beanName) {
-        char[] c = beanName.toCharArray();
-        c[0] += 32;
-        return String.valueOf(c);
-    }*/
+    private void initLocaleResolver(GPApplicationContext context) {
+    }
+
+    private void initMultipartResolver(GPApplicationContext context) {
+    }
+
 }
