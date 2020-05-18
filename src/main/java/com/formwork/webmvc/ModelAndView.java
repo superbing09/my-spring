@@ -10,29 +10,30 @@ import java.util.concurrent.ThreadPoolExecutor;
  */
 public class ModelAndView {
 
-    public ModelAndView(String viewName, Map<String,?> model) {
+    private String viewName;
+    private Map<String, Object> model;
 
+    public ModelAndView() {
+    }
+    public ModelAndView(String viewName, Map<String, Object> model) {
+        this.viewName = viewName;
+        this.model = model;
     }
 
-    public static void main(String[] args) {
-
+    public Map<String, Object> getModel() {
+        return model;
     }
 
-
-}
-class A extends Thread{
-    private int num = 10;
-    @Override
-    public void run() {
-        System.out.println("a" + Thread.currentThread().getName() + ":" + num--);
+    public void setModel(Map<String, Object> model) {
+        this.model = model;
     }
-}
 
-class B implements Runnable{
-    private int num = 10;
+    public String getViewName() {
 
-    @Override
-    public void run() {
-        System.out.println("b" + Thread.currentThread().getName() + ":" + num--);
+        return viewName;
+    }
+
+    public void setViewName(String viewName) {
+        this.viewName = viewName;
     }
 }

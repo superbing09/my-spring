@@ -3,6 +3,7 @@ package com.formwork.context;
 import com.formwork.annotation.Autowired;
 import com.formwork.annotation.Controller;
 import com.formwork.annotation.Service;
+import com.formwork.aop.AopConfig;
 import com.formwork.beans.BeanDefinition;
 import com.formwork.beans.BeanPostProcessor;
 import com.formwork.beans.BeanWrapper;
@@ -10,22 +11,24 @@ import com.formwork.context.support.BeanDefinitionReader;
 import com.formwork.core.BeanFactory;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by Administrator on 2020/4/26.
  */
-public class GPApplicationContext implements BeanFactory {
+public class GPApplicationContext extends GPDefaultListableBeanFactory implements BeanFactory {
 
     private String[] configLocations;
 
     private BeanDefinitionReader reader;
 
-    // bean的配置信息
-    private Map<String, BeanDefinition> beanDefinitionMap = new ConcurrentHashMap<String, BeanDefinition>();
     // 保证单例
     private Map<String, Object> beanCacheMap = new HashMap<String, Object>();
     // 存储被代理过的对象
@@ -33,10 +36,10 @@ public class GPApplicationContext implements BeanFactory {
 
     public GPApplicationContext(String... configLocations) {
         this.configLocations = configLocations;
-        this.refresh();
+        this.onRefresh();
     }
 
-    public void refresh() {
+    public void onRefresh() {
         // 定位
         this.reader = new BeanDefinitionReader(configLocations);
         // 加载
@@ -73,7 +76,7 @@ public class GPApplicationContext implements BeanFactory {
             String autowiredName = autowired.value().trim();
 
             if ("".equals(autowiredName)) {
-                autowiredName = field.getType().getName();
+                autowiredName = field.getType().getSimpleName();
             }
             field.setAccessible(true);
             try {
@@ -106,7 +109,7 @@ public class GPApplicationContext implements BeanFactory {
                 for (Class<?> i : interfaces) {
                     // 多个实现了类会覆盖， spring会报错， @qualify可以设置不同的名字
                     System.out.println("i.getSimpleName()" + i.getSimpleName() + "---- i.getName()" + i.getName());
-                    this.beanDefinitionMap.put(i.getName(), beanDefinition);
+                    this.beanDefinitionMap.put(i.getSimpleName(), beanDefinition);
                 }
                 // beanName 三种情况
                 // 1 默认类名是首字母小写
@@ -138,6 +141,7 @@ public class GPApplicationContext implements BeanFactory {
                 beanPostProcessor.postProcessBeforeInitialization(instance, beanName);
 
                 BeanWrapper beanWrapper = new BeanWrapper(instance);
+                beanWrapper.setAopConfig(instantionAopconfig(beanDefinition));
                 this.beanWrapperMap.put(beanName, beanWrapper);
 
                 beanPostProcessor.postProcessAfterInitialization(instance, beanName);
@@ -168,5 +172,37 @@ public class GPApplicationContext implements BeanFactory {
             e.printStackTrace();
         }
         return null;
+    }
+
+    private AopConfig instantionAopconfig (BeanDefinition beanDefinition) throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException, InstantiationException {
+        AopConfig config = new AopConfig();
+        String expression = reader.getConfig().getProperty("pointCut");
+        String[] before = reader.getConfig().getProperty("aspectBefore").split("\\s");
+        String[] after = reader.getConfig().getProperty("aspectAfter").split("\\s");
+        String className = beanDefinition.getBeanClassName();
+        Class<?> clazz = Class.forName(className);
+        Pattern pattern = Pattern.compile(expression);
+
+        Class aspectClass = Class.forName(before[0]);
+        Class<?>[] interfaces = clazz.getInterfaces();
+        for(Method method : clazz.getMethods()) {
+            Matcher matcher = pattern.matcher(method.toString());
+            if (matcher.matches()) {
+                config.put(interfaces[0].getMethods()[0], aspectClass.newInstance(), new Method[]{aspectClass.getMethod(before[1]), aspectClass.getMethod(after[1])});
+            }
+        }
+        return config;
+    }
+
+    public int getBeanDefinitionCount() {
+        return this.beanDefinitionMap.size();
+    }
+
+    public String[] getBeanDefinitionNames() {
+        return this.beanDefinitionMap.keySet().toArray(new String[this.beanDefinitionMap.size()]);
+    }
+
+    public Properties getConfig() {
+        return this.reader.getConfig();
     }
 }

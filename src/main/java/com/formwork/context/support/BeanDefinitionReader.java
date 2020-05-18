@@ -51,7 +51,7 @@ public class BeanDefinitionReader {
     }
 
     public Properties getConfig() {
-        return this.getConfig();
+        return this.config;
     }
 
     public BeanDefinition registerBean(String className) {

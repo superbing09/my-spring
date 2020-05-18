@@ -1,5 +1,7 @@
 package com.formwork.beans;
 
+import com.formwork.aop.AopConfig;
+import com.formwork.aop.AopProxy;
 import com.formwork.core.FactoryBean;
 
 /**
@@ -12,6 +14,8 @@ public class BeanWrapper extends FactoryBean {
     // 包装后的bean对象
     private Object wrapperInstance;
 
+    private AopProxy aopProxy = new AopProxy();
+
     // 原装bena对象
     private Object originalInstance;
 
@@ -20,7 +24,9 @@ public class BeanWrapper extends FactoryBean {
     }
 
     public BeanWrapper(Object instance) {
-        this.wrapperInstance = instance;
+        // aop这里开始， 动态代理添加这里
+        this.wrapperInstance = aopProxy.getProxy(instance);
+        this.originalInstance = instance;
     }
 
     // 返回代理之后的类
@@ -29,11 +35,19 @@ public class BeanWrapper extends FactoryBean {
         return this.wrapperInstance.getClass();
     }
 
+    public Object getOriginalInstance() {
+        return originalInstance;
+    }
+
     public BeanPostProcessor getPostProcessor() {
         return postProcessor;
     }
 
     public void setPostProcessor(BeanPostProcessor postProcessor) {
         this.postProcessor = postProcessor;
+    }
+
+    public void setAopConfig(AopConfig aopConfig) {
+        this.aopProxy.setConfig(aopConfig);
     }
 }
