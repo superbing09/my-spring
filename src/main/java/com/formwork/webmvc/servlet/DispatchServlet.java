@@ -120,13 +120,8 @@ public class DispatchServlet extends HttpServlet {
     @Override
     public void init(ServletConfig config) throws ServletException {
         // start init
-
         GPApplicationContext context = new GPApplicationContext(config.getInitParameter("contextConfigLocation"));
-
         initStrategies(context);
-
-        HelloService controller = (HelloService) context.getBean("HelloService");
-        controller.sayHello("haah");
     }
 
     // mvc 9大组件

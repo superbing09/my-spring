@@ -29,11 +29,11 @@ public class AopProxy implements InvocationHandler {
             AopConfig.Aspect aspect = config.get(method);
             aspect.getPoints()[0].invoke(aspect.getAspect());
         }
+        Object object = method.invoke(this.target, args);
         if(config.contains(method)) {
             AopConfig.Aspect aspect = config.get(method);
             aspect.getPoints()[1].invoke(aspect.getAspect());
         }
-        Object object = method.invoke(this.target, args);
         return object;
     }
 

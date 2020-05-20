@@ -43,9 +43,9 @@ public class GPApplicationContext extends GPDefaultListableBeanFactory implement
         // 定位
         this.reader = new BeanDefinitionReader(configLocations);
         // 加载
-        List<String> beanDefinitions = reader.loadBeanDefinitions();
+        List<String> registyBeanClasses = reader.loadBeanDefinitions();
         // 注册
-        doRegisty(beanDefinitions);
+        doRegisty(registyBeanClasses);
         // 依赖注入
         doAutorited();
     }
@@ -91,10 +91,10 @@ public class GPApplicationContext extends GPDefaultListableBeanFactory implement
     }
 
     // DI注册道beanDefinitionMap
-    private void doRegisty(List<String> beanDefinitions) {
+    private void doRegisty(List<String> registyBeanClasses) {
         try {
 
-            for (String className : beanDefinitions) {
+            for (String className : registyBeanClasses) {
 
                 Class<?> beanClass = Class.forName(className);
                 if (beanClass.isInterface()) {
@@ -108,7 +108,6 @@ public class GPApplicationContext extends GPDefaultListableBeanFactory implement
                 Class<?>[] interfaces = beanClass.getInterfaces();
                 for (Class<?> i : interfaces) {
                     // 多个实现了类会覆盖， spring会报错， @qualify可以设置不同的名字
-                    System.out.println("i.getSimpleName()" + i.getSimpleName() + "---- i.getName()" + i.getName());
                     this.beanDefinitionMap.put(i.getSimpleName(), beanDefinition);
                 }
                 // beanName 三种情况
